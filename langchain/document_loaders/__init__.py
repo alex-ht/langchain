@@ -45,6 +45,7 @@ from langchain.document_loaders.ifixit import IFixitLoader
 from langchain.document_loaders.image import UnstructuredImageLoader
 from langchain.document_loaders.image_captions import ImageCaptionLoader
 from langchain.document_loaders.imsdb import IMSDbLoader
+from langchain.document_loaders.jsonl_loader import JSONLLoader
 from langchain.document_loaders.markdown import UnstructuredMarkdownLoader
 from langchain.document_loaders.mediawikidump import MWDumpLoader
 from langchain.document_loaders.modern_treasury import ModernTreasuryLoader
@@ -144,6 +145,7 @@ __all__ = [
     "IFixitLoader",
     "IMSDbLoader",
     "ImageCaptionLoader",
+    "JSONLLoader",
     "ModernTreasuryLoader",
     "MWDumpLoader",
     "NotebookLoader",
