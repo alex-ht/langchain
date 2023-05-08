@@ -2,6 +2,7 @@
 from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Extra, Field
+from transformers import BloomModel, AutoTokenizer, pipeline
 
 from langchain.embeddings.base import Embeddings
 
@@ -164,13 +165,21 @@ class HuggingFaceInstructEmbeddings(BaseModel, Embeddings):
 
 class BloomEmbeddings(BaseModel, Embeddings):
     pipe: Any
-    def __init__(self, model_name="bigscience/bloom-560m", **kwargs: Any):
+    def __init__(self, model_name="bigscience/bloom-560m", device=-1, **kwargs: Any):
         """Initialize the sentence_transformer."""
         super().__init__(**kwargs)
-        from transformers import AutoModel, AutoTokenizer, pipeline
+        from langchain.embeddings.sgpt_pipeline import SgptPipeline
+        from transformers.pipelines import PIPELINE_REGISTRY
+        PIPELINE_REGISTRY.register_pipeline(
+            "sgpt-pipeline",
+            pipeline_class=SgptPipeline,
+            pt_model=BloomModel,
+            type="text",
+        )
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModel.from_pretrained(model_name)
-        self.pipe = pipeline("feature-extraction", model=model, tokenizer=tokenizer)
+        model = BloomModel.from_pretrained(model_name)
+        model.eval()
+        self.pipe = pipeline("sgpt-pipeline", model=model, tokenizer=tokenizer, device=device)
 
     class Config:
         """Configuration for this pydantic object."""
@@ -180,8 +189,8 @@ class BloomEmbeddings(BaseModel, Embeddings):
     def inference_fn(self, prompt: Union[str, List[str]]):
         # Return last hidden state of the model
         if isinstance(prompt, list):
-            return [emb[0][-1] for emb in self.pipe(prompt)]
-        return self.pipe(prompt)[0][-1]
+            return [emb[0] for emb in self.pipe(prompt)]
+        return self.pipe(prompt)[0]
     
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Compute doc embeddings using a HuggingFace transformer model.
@@ -192,7 +201,6 @@ class BloomEmbeddings(BaseModel, Embeddings):
         Returns:
             List of embeddings, one for each text.
         """
-        texts = list(map(lambda x: x.replace("\n", " "), texts))
         embeddings = self.inference_fn(texts)
         return embeddings
 
@@ -205,7 +213,5 @@ class BloomEmbeddings(BaseModel, Embeddings):
         Returns:
             Embeddings for the text.
         """
-        # TODO(Alex): remove next line
-        text = text.replace("\n", " ")
         embedding = self.inference_fn(text)
         return embedding
