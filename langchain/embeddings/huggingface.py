@@ -1,7 +1,8 @@
 """Wrapper around HuggingFace embedding models."""
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Extra, Field
+from transformers import BloomModel, AutoTokenizer, pipeline
 
 from langchain.embeddings.base import Embeddings
 
@@ -160,3 +161,57 @@ class HuggingFaceInstructEmbeddings(BaseModel, Embeddings):
         instruction_pair = [self.query_instruction, text]
         embedding = self.client.encode([instruction_pair])[0]
         return embedding.tolist()
+
+
+class BloomEmbeddings(BaseModel, Embeddings):
+    pipe: Any
+    def __init__(self, model_name="bigscience/bloom-560m", device=-1, **kwargs: Any):
+        """Initialize the sentence_transformer."""
+        super().__init__(**kwargs)
+        from langchain.embeddings.sgpt_pipeline import SgptPipeline
+        from transformers.pipelines import PIPELINE_REGISTRY
+        PIPELINE_REGISTRY.register_pipeline(
+            "sgpt-pipeline",
+            pipeline_class=SgptPipeline,
+            pt_model=BloomModel,
+            type="text",
+        )
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = BloomModel.from_pretrained(model_name)
+        model.eval()
+        self.pipe = pipeline("sgpt-pipeline", model=model, tokenizer=tokenizer, device=device)
+
+    class Config:
+        """Configuration for this pydantic object."""
+
+        extra = Extra.forbid
+
+    def inference_fn(self, prompt: Union[str, List[str]]):
+        # Return last hidden state of the model
+        if isinstance(prompt, list):
+            return [emb[0] for emb in self.pipe(prompt)]
+        return self.pipe(prompt)[0]
+    
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Compute doc embeddings using a HuggingFace transformer model.
+
+        Args:
+            texts: The list of texts to embed.
+
+        Returns:
+            List of embeddings, one for each text.
+        """
+        embeddings = self.inference_fn(texts)
+        return embeddings
+
+    def embed_query(self, text: str) -> List[float]:
+        """Compute query embeddings using a HuggingFace transformer model.
+
+        Args:
+            text: The text to embed.
+
+        Returns:
+            Embeddings for the text.
+        """
+        embedding = self.inference_fn(text)
+        return embedding
