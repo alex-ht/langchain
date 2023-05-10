@@ -12,7 +12,7 @@ from langchain.embeddings.google_palm import GooglePalmEmbeddings
 from langchain.embeddings.huggingface import (
     HuggingFaceEmbeddings,
     HuggingFaceInstructEmbeddings,
-    BloomEmbeddings,
+    AutoModelEmbeddings,
 )
 from langchain.embeddings.huggingface_hub import HuggingFaceHubEmbeddings
 from langchain.embeddings.jina import JinaEmbeddings
@@ -47,7 +47,7 @@ __all__ = [
     "AlephAlphaSymmetricSemanticEmbedding",
     "SentenceTransformerEmbeddings",
     "GooglePalmEmbeddings",
-    "BloomEmbeddings",
+    "AutoModelEmbeddings",
 ]
 
 

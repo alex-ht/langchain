@@ -2,7 +2,6 @@
 from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Extra, Field
-from transformers import BloomModel, AutoTokenizer, pipeline
 
 from langchain.embeddings.base import Embeddings
 
@@ -163,21 +162,22 @@ class HuggingFaceInstructEmbeddings(BaseModel, Embeddings):
         return embedding.tolist()
 
 
-class BloomEmbeddings(BaseModel, Embeddings):
+class AutoModelEmbeddings(BaseModel, Embeddings):
     pipe: Any
     def __init__(self, model_name="bigscience/bloom-560m", device=-1, **kwargs: Any):
         """Initialize the sentence_transformer."""
         super().__init__(**kwargs)
-        from langchain.embeddings.sgpt_pipeline import SgptPipeline
+        from transformers import AutoModel, AutoTokenizer, pipeline
         from transformers.pipelines import PIPELINE_REGISTRY
+        from langchain.embeddings.sgpt_pipeline import SgptPipeline
         PIPELINE_REGISTRY.register_pipeline(
             "sgpt-pipeline",
             pipeline_class=SgptPipeline,
-            pt_model=BloomModel,
+            pt_model=AutoModel,
             type="text",
         )
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = BloomModel.from_pretrained(model_name)
+        model = AutoModel.from_pretrained(model_name)
         model.eval()
         self.pipe = pipeline("sgpt-pipeline", model=model, tokenizer=tokenizer, device=device)
 
