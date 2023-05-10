@@ -164,7 +164,7 @@ class HuggingFaceInstructEmbeddings(BaseModel, Embeddings):
 
 class AutoModelEmbeddings(BaseModel, Embeddings):
     pipe: Any
-    def __init__(self, model_name="bigscience/bloom-560m", device=-1, **kwargs: Any):
+    def __init__(self, model_name="bigscience/bloom-560m", device=-1, fp16=False, **kwargs: Any):
         """Initialize the sentence_transformer."""
         super().__init__(**kwargs)
         from transformers import AutoModel, AutoTokenizer, pipeline
@@ -178,6 +178,8 @@ class AutoModelEmbeddings(BaseModel, Embeddings):
         )
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModel.from_pretrained(model_name)
+        if fp16:
+            model = model.half()
         model.eval()
         self.pipe = pipeline("sgpt-pipeline", model=model, tokenizer=tokenizer, device=device)
 
